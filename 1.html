@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>廣筌中藥團購助手</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Noto Sans TC', sans-serif; background-color: #f8fafc; }
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        @media print { .no-print { display: none !important; } }
+    </style>
+    <script type="importmap">
+{
+  "imports": {
+    "react": "https://esm.sh/react@19.0.0",
+    "react-dom/client": "https://esm.sh/react-dom@19.0.0/client",
+    "lucide-react": "https://esm.sh/lucide-react@0.460.0",
+    "react/": "https://esm.sh/react@^19.2.3/"
+  }
+}
+</script>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="module">
+        import React, { useState, useEffect, useMemo } from 'react';
+        import { createRoot } from 'react-dom/client';
+        import { 
+          ShoppingCart, Trash2, Plus, Minus, Search, 
+          FileSpreadsheet, Cloud, CloudOff, 
+          RefreshCw, CheckCircle, Package, ChevronRight
+        } from 'lucide-react';
+
+        const CATEGORIES = [
+            "一、藥膳類", 
+            "二、沖泡類", 
+            "三、茶飲類 (茶包10入)", 
+            "四、藥食類 (有機)", 
+            "四、藥食類 (生機.安全.一般)", 
+            "五、料理調味", 
+            "六、生堅果與豆類", 
+            "七、其他"
+        ];
+
+        const PRODUCTS = [
+            // 一、藥膳類
+            { id: '1-1', category: '一、藥膳類', name: '1. 十全藥膳包', variants: [{ name: '標準', price: 180 }] },
+            { id: '1-2', category: '一、藥膳類', name: '2. 天麻蟲草藥膳', variants: [{ name: '標準', price: 180 }] },
+            { id: '1-3', category: '一、藥膳類', name: '3. 歸耆蟲草藥膳', variants: [{ name: '標準', price: 180 }] },
+            { id: '1-4', category: '一、藥膳類', name: '4. 首烏藥膳包', variants: [{ name: '標準', price: 160 }] },
+            { id: '1-5', category: '一、藥膳類', name: '5. 滋補藥膳包', variants: [{ name: '標準', price: 160 }] },
+            { id: '1-6', category: '一、藥膳類', name: '6. 八珍元氣包', variants: [{ name: '標準', price: 160 }] },
+            { id: '1-7', category: '一、藥膳類', name: '7. 四物靚顏包', variants: [{ name: '標準', price: 160 }] },
+            { id: '1-8', category: '一、藥膳類', name: '8. 紅燒藥膳包', variants: [{ name: '標準', price: 130 }] },
+            { id: '1-9', category: '一、藥膳類', name: '9. 四神滋養湯', variants: [{ name: '標準', price: 100 }] },
+            { id: '1-10', category: '一、藥膳類', name: '10. 當歸鴨料理包', variants: [{ name: '標準', price: 130 }] },
+            { id: '1-11', category: '一、藥膳類', name: '11. 薑母鴨料理包', variants: [{ name: '標準', price: 60 }] },
+
+            // 二、沖泡類
+            { id: '2-1', category: '二、沖泡類', name: '1. 熟化四神粉', variants: [{ name: '標準', price: 350 }] },
+            { id: '2-2', category: '二、沖泡類', name: '2. 熟純營養粉', variants: [{ name: '標準', price: 300 }] },
+            { id: '2-3', category: '二、沖泡類', name: '3. 台灣牛蒡片', variants: [{ name: '標準', price: 370 }] },
+            { id: '2-4', category: '二、沖泡類', name: '4. 杏仁茶', variants: [{ name: '標準', price: 300 }] },
+
+            // 三、茶飲類
+            { id: '3-1', category: '三、茶飲類 (茶包10入)', name: '1. 纖體茶', variants: [{ name: '10入', price: 350 }] },
+            { id: '3-2', category: '三、茶飲類 (茶包10入)', name: '2. 除濕茶', variants: [{ name: '10入', price: 300 }] },
+            { id: '3-3', category: '三、茶飲類 (茶包10入)', name: '3. 寧心花茶', variants: [{ name: '10入', price: 300 }] },
+            { id: '3-4', category: '三、茶飲類 (茶包10入)', name: '4. 補氣茶', variants: [{ name: '10入', price: 300 }] },
+            { id: '3-5', category: '三、茶飲類 (茶包10入)', name: '5. 養肝茶', variants: [{ name: '10入', price: 300 }] },
+            { id: '3-6', category: '三、茶飲類 (茶包10入)', name: '6. 玫瑰花茶', variants: [{ name: '10入', price: 300 }] },
+
+            // 四、藥食類 (有機)
+            { id: '4-o1', category: '四、藥食類 (有機)', name: '1. 有機黃耆', variants: [{ name: '200克', price: 260 }, { name: '一斤', price: 750 }] },
+            { id: '4-o2', category: '四、藥食類 (有機)', name: '2. 有機紅棗', variants: [{ name: '半斤', price: 160 }, { name: '一斤', price: 300 }] },
+            { id: '4-o3', category: '四、藥食類 (有機)', name: '3. 有機枸杞', variants: [{ name: '半斤', price: 360 }, { name: '一斤', price: 700 }] },
+            { id: '4-o4', category: '四、藥食類 (有機)', name: '4. 有機當歸', variants: [{ name: '明年即將有貨', price: 0 }] },
+            { id: '4-o5', category: '四、藥食類 (有機)', name: '5. 有機山藥', variants: [{ name: '明年即將有貨', price: 0 }] },
+
+            // 四、藥食類 (生機.安全.一般)
+            { id: '4-s1', category: '四、藥食類 (生機.安全.一般)', name: '1. 生機特級紅棗', variants: [{ name: '半斤', price: 85 }, { name: '一斤', price: 150 }] },
+            { id: '4-s2', category: '四、藥食類 (生機.安全.一般)', name: '2. 特級去子紅棗', variants: [{ name: '半斤', price: 85 }, { name: '一斤', price: 150 }] },
+            { id: '4-s3', category: '四、藥食類 (生機.安全.一般)', name: '3. 生機枸杞', variants: [{ name: '半斤', price: 185 }, { name: '一斤', price: 350 }] },
+            { id: '4-s4', category: '四、藥食類 (生機.安全.一般)', name: '4. 特選黑棗', variants: [{ name: '一斤', price: 190 }] },
+            { id: '4-s5', category: '四、藥食類 (生機.安全.一般)', name: '5. 特級黑棗', variants: [{ name: '一斤', price: 170 }] },
+            { id: '4-s6', category: '四、藥食類 (生機.安全.一般)', name: '6. 蓮子', variants: [{ name: '一斤', price: 280 }] },
+            { id: '4-s7', category: '四、藥食類 (生機.安全.一般)', name: '7. 糯薏仁', variants: [{ name: '一斤', price: 80 }] },
+            { id: '4-s8', category: '四、藥食類 (生機.安全.一般)', name: '8. 生機芡實', variants: [{ name: '一斤', price: 250 }] },
+            { id: '4-s9', category: '四、藥食類 (生機.安全.一般)', name: '9. 當歸', variants: [{ name: '2兩', price: 150 }] },
+            { id: '4-s10', category: '四、藥食類 (生機.安全.一般)', name: '10. 西洋參(花旗參)', variants: [{ name: '一兩', price: 300 }, { name: '半斤', price: 2300 }] },
+            { id: '4-s11', category: '四、藥食類 (生機.安全.一般)', name: '11. 生機菊花', variants: [{ name: '半斤', price: 400 }] },
+            { id: '4-s12', category: '四、藥食類 (生機.安全.一般)', name: '12. 野生甘草', variants: [{ name: '一兩', price: 30 }, { name: '四兩', price: 120 }] },
+            { id: '4-s13', category: '四、藥食類 (生機.安全.一般)', name: '13. 黃金蟲草', variants: [{ name: '一兩', price: 60 }] },
+            { id: '4-s14', category: '四、藥食類 (生機.安全.一般)', name: '14. 有機白木耳', variants: [{ name: '200克', price: 160 }] },
+
+            // 五、料理調味
+            { id: '5-1', category: '五、料理調味', name: '1. 原味椒鹽', variants: [{ name: '75克', price: 60 }] },
+            { id: '5-2', category: '五、料理調味', name: '2. 蒜味椒鹽', variants: [{ name: '75克', price: 60 }] },
+            { id: '5-3', category: '五、料理調味', name: '3. 黑胡椒粉', variants: [{ name: '70克', price: 60 }] },
+            { id: '5-4', category: '五、料理調味', name: '4. 白胡椒粉', variants: [{ name: '60克', price: 60 }] },
+            { id: '5-5', category: '五、料理調味', name: '5. 粗胡椒', variants: [{ name: '70克', price: 60 }] },
+            { id: '5-6', category: '五、料理調味', name: '6. 黑胡椒粒', variants: [{ name: '75克', price: 60 }] },
+            { id: '5-7', category: '五、料理調味', name: '7. 白胡椒粒', variants: [{ name: '55克', price: 60 }] },
+            { id: '5-8', category: '五、料理調味', name: '8. 滷包', variants: [{ name: '大包3入', price: 100 }, { name: '小包3入', price: 60 }] },
+            { id: '5-9', category: '五、料理調味', name: '9. 薑母ㄚ粉', variants: [{ name: '150克', price: 400 }] },
+            { id: '5-10', category: '五、料理調味', name: '10. 三寶粉', variants: [{ name: '60克', price: 100 }] },
+            { id: '5-11', category: '五、料理調味', name: '11. 雲南陳年蘿蔔乾', variants: [{ name: '2兩', price: 140 }] },
+            { id: '5-12', category: '五、料理調味', name: '12. 特級肉桂粉', variants: [{ name: '2兩', price: 400 }] },
+            { id: '5-13', category: '五、料理調味', name: '13. 特製香料(百草粉)', variants: [{ name: '2兩', price: 100 }] },
+            { id: '5-14', category: '五、料理調味', name: '14. 八角', variants: [{ name: '2兩', price: 50 }] },
+
+            // 六、生堅果與豆類
+            { id: '6-1', category: '六、生堅果與豆類', name: '1. 腰果', variants: [{ name: '大顆', price: 280 }, { name: '中顆', price: 250 }] },
+            { id: '6-2', category: '六、生堅果與豆類', name: '2. 美國核桃', variants: [{ name: '半斤', price: 150 }, { name: '一斤', price: 280 }] },
+            { id: '6-3', category: '六、生堅果與豆類', name: '3. 夏威夷豆', variants: [{ name: '半斤', price: 220 }] },
+            { id: '6-4', category: '六、生堅果與豆類', name: '4. 松子', variants: [{ name: '半斤', price: 430 }] },
+            { id: '6-5', category: '六、生堅果與豆類', name: '5. 杏仁果', variants: [{ name: '一斤', price: 240 }] },
+            { id: '6-6', category: '六、生堅果與豆類', name: '6. 特級南瓜子仁', variants: [{ name: '一斤', price: 240 }] },
+            { id: '6-7', category: '六、生堅果與豆類', name: '7. 葵瓜子仁', variants: [{ name: '一斤', price: 120 }] },
+            { id: '6-8', category: '六、生堅果與豆類', name: '8. 炒有機黑豆', variants: [{ name: '一斤', price: 150 }] },
+            { id: '6-9', category: '六、生堅果與豆類', name: '9. 有機黑豆', variants: [{ name: '一斤', price: 130 }] },
+            { id: '6-10', category: '六、生堅果與豆類', name: '10. 有機黃豆', variants: [{ name: '一斤', price: 100 }] },
+            { id: '6-11', category: '六、生堅果與豆類', name: '11. 有機綠豆', variants: [{ name: '一斤', price: 150 }] },
+            { id: '6-12', category: '六、生堅果與豆類', name: '12. 履歷紅豆', variants: [{ name: '一斤', price: 130 }] },
+
+            // 七、其他
+            { id: '7-1', category: '七、其他', name: '1. 多醣體養生液', variants: [{ name: '1包', price: 80 }] },
+            { id: '7-2', category: '七、其他', name: '2. 多醣體禮盒', variants: [{ name: '10入', price: 830 }] },
+            { id: '7-3', category: '七、其他', name: '3. 加味八珍萃取湯', variants: [{ name: '客製化', price: 80 }] },
+            { id: '7-4', category: '七、其他', name: '4. 元氣滋養飲', variants: [{ name: '推廣價', price: 60 }] },
+            { id: '7-5', category: '七、其他', name: '5. 美顏飲', variants: [{ name: '標準', price: 160 }] },
+            { id: '7-6', category: '七、其他', name: '6. 平安藥浴包', variants: [{ name: '一包', price: 50 }, { name: '6包(買五送一)', price: 250 }] },
+            { id: '7-7', category: '七、其他', name: '7. 梅精仙楂菓', variants: [{ name: '150克', price: 50 }] },
+            { id: '7-8', category: '七、其他', name: '8. 固齒神方', variants: [{ name: '標準', price: 150 }] },
+            { id: '7-9', category: '七、其他', name: '9. 薑黃粉', variants: [{ name: '一斤', price: 350 }] },
+            { id: '7-10', category: '七、其他', name: '10. 梅汁紅棗', variants: [{ name: '160克', price: 100 }] },
+            { id: '7-11', category: '七、其他', name: '11. 日式梅餅', variants: [{ name: '標準', price: 100 }] },
+            { id: '7-12', category: '七、其他', name: '12. 去子梅肉', variants: [{ name: '標準', price: 100 }] },
+            { id: '7-13', category: '七、其他', name: '13. 日式梅片', variants: [{ name: '標準', price: 100 }] },
+        ];
+
+        const CLOUD_API_BASE = "https://api.npoint.io/";
+
+        const App = () => {
+          const [orders, setOrders] = useState(() => JSON.parse(localStorage.getItem('gq_orders_v6') || '[]'));
+          const [currentName, setCurrentName] = useState('');
+          const [selectedItems, setSelectedItems] = useState([]);
+          const [activeCategory, setActiveCategory] = useState(CATEGORIES[0]);
+          const [searchQuery, setSearchQuery] = useState('');
+          const [roomId, setRoomId] = useState(localStorage.getItem('gq_room_id') || '');
+          const [isCloudActive, setIsCloudActive] = useState(localStorage.getItem('gq_cloud_active') === 'true');
+          const [isSyncing, setIsSyncing] = useState(false);
+
+          useEffect(() => {
+            localStorage.setItem('gq_orders_v6', JSON.stringify(orders));
+            localStorage.setItem('gq_room_id', roomId);
+            localStorage.setItem('gq_cloud_active', String(isCloudActive));
+          }, [orders, roomId, isCloudActive]);
+
+          const sync = async (data) => {
+            if (!isCloudActive || !roomId) return;
+            setIsSyncing(true);
+            try {
+              await fetch(`${CLOUD_API_BASE}${roomId}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data || orders),
+              });
+            } catch (e) {} finally { setIsSyncing(false); }
+          };
+
+          const pull = async () => {
+            if (!isCloudActive || !roomId) return;
+            try {
+              const res = await fetch(`${CLOUD_API_BASE}${roomId}`);
+              if (res.ok) {
+                const d = await res.json();
+                if (JSON.stringify(d) !== JSON.stringify(orders)) setOrders(d);
+              }
+            } catch (e) {}
+          };
+
+          useEffect(() => {
+            let t;
+            if (isCloudActive && roomId) { pull(); t = setInterval(pull, 10000); }
+            return () => clearInterval(t);
+          }, [isCloudActive, roomId]);
+
+          const handleQty = (p, v, delta) => {
+            const idx = selectedItems.findIndex(i => i.pid === p.id && i.vn === v.name);
+            if (idx > -1) {
+              const next = [...selectedItems];
+              next[idx].qty += delta;
+              if (next[idx].qty <= 0) next.splice(idx, 1);
+              setSelectedItems(next);
+            } else if (delta > 0) {
+              setSelectedItems([...selectedItems, { pid: p.id, pn: p.name, vn: v.name, pr: v.price, qty: 1 }]);
+            }
+          };
+
+          const submit = () => {
+            if (!currentName.trim() || selectedItems.length === 0) return alert('請填寫姓名');
+            const newOrders = [...orders, { id: Date.now(), name: currentName.trim(), items: selectedItems }];
+            setOrders(newOrders);
+            setCurrentName('');
+            setSelectedItems([]);
+            if (isCloudActive) sync(newOrders);
+          };
+
+          const exportCSV = () => {
+            let csv = "\ufeff姓名,品項,規格,數量,單價,小計\n";
+            let currentRow = 2;
+            orders.forEach(o => {
+              const startRow = currentRow;
+              o.items.forEach(i => {
+                csv += `${o.name},${i.pn},${i.vn},${i.qty},${i.pr},"=D${currentRow}*E${currentRow}"\n`;
+                currentRow++;
+              });
+              csv += `${o.name},個人總計,,=SUM(D${startRow}:D${currentRow-1}),,"=SUM(F${startRow}:F${currentRow-1})"\n`;
+              currentRow++;
+            });
+            const lastRow = currentRow - 1;
+            csv += `,,全體團購總計,,,"=SUMIF(B2:B${lastRow},""個人總計"",F2:F${lastRow})"\n`;
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `廣筌團購總額_${new Date().toLocaleDateString()}.csv`;
+            a.click();
+          };
+
+          const filtered = useMemo(() => searchQuery ? PRODUCTS.filter(p => p.name.includes(searchQuery)) : PRODUCTS.filter(p => p.category === activeCategory), [activeCategory, searchQuery]);
+
+          return React.createElement('div', { className: 'min-h-screen pb-12' }, 
+            React.createElement('div', { className: 'max-w-6xl mx-auto p-4 space-y-6' },
+              React.createElement('header', { className: 'flex flex-col md:flex-row justify-between gap-4 border-b pb-6 items-end' },
+                React.createElement('div', null,
+                  React.createElement('h1', { className: 'text-4xl font-black text-emerald-900 flex items-center gap-3' }, 
+                    React.createElement(Package, { className: 'text-emerald-600', size: 36 }), "廣筌中藥團購助手"
+                  ),
+                  React.createElement('div', { className: 'text-xs text-gray-500 mt-2 flex items-center gap-2' }, 
+                    isCloudActive ? React.createElement(Cloud, { size: 14, className: 'text-emerald-600' }) : React.createElement(CloudOff, { size: 14 }),
+                    isCloudActive ? `同步代碼: ${roomId}` : "單機模式"
+                  )
+                ),
+                React.createElement('div', { className: 'flex gap-2 no-print' },
+                  React.createElement('button', { onClick: () => {
+                    if(!isCloudActive) {
+                      const code = roomId || Math.random().toString(36).substring(2, 8).toUpperCase();
+                      setRoomId(code); setIsCloudActive(true);
+                      alert(`已開啟雲端同步！代碼：${code}`);
+                    } else setIsCloudActive(false);
+                  }, className: 'bg-white border-2 border-emerald-100 px-4 py-2 rounded-xl text-sm font-bold text-emerald-800 transition' }, isCloudActive ? "關閉同步" : "開啟同步"),
+                  React.createElement('button', { onClick: exportCSV, className: 'bg-emerald-700 text-white px-5 py-2 rounded-xl text-sm font-black shadow-lg hover:bg-emerald-800 transition' }, "匯出結帳 Excel")
+                )
+              ),
+
+              React.createElement('div', { className: 'grid grid-cols-1 lg:grid-cols-3 gap-8 no-print' },
+                React.createElement('div', { className: 'lg:col-span-2 space-y-6' },
+                  React.createElement('div', { className: 'bg-white p-6 rounded-3xl shadow-sm border border-emerald-50' },
+                    React.createElement('label', { className: 'block font-black text-emerald-900 mb-3 text-lg' }, "第一步：您的姓名"),
+                    React.createElement('input', { value: currentName, onChange: e => setCurrentName(e.target.value), placeholder: "請輸入大名...", className: 'w-full px-5 py-4 border-2 border-emerald-50 rounded-2xl text-xl focus:border-emerald-500 focus:ring-4 focus:ring-emerald-50 outline-none transition-all' })
+                  ),
+                  React.createElement('div', { className: 'bg-white rounded-3xl shadow-sm border border-emerald-50 overflow-hidden flex flex-col h-[650px]' },
+                    React.createElement('div', { className: 'p-5 bg-emerald-50/20 border-b' },
+                      React.createElement('div', { className: 'relative' },
+                        React.createElement(Search, { className: 'absolute left-4 top-1/2 -translate-y-1/2 text-emerald-400', size: 20 }),
+                        React.createElement('input', { value: searchQuery, onChange: e => setSearchQuery(e.target.value), placeholder: "搜尋品項名稱...", className: 'w-full pl-12 pr-5 py-3 rounded-2xl border-2 border-transparent focus:border-emerald-300 bg-white outline-none' })
+                      )
+                    ),
+                    React.createElement('div', { className: 'flex flex-1 overflow-hidden' },
+                      !searchQuery && React.createElement('div', { className: 'w-1/3 bg-slate-50 overflow-y-auto border-r scrollbar-hide' },
+                        CATEGORIES.map(c => React.createElement('button', { key: c, onClick: () => setActiveCategory(c), className: `w-full text-left p-4 text-[11px] font-bold transition-all border-b border-emerald-50/50 ${activeCategory === c ? 'bg-white text-emerald-700 border-r-4 border-emerald-600 shadow-inner' : 'text-gray-400'}` }, c))
+                      ),
+                      React.createElement('div', { className: 'flex-1 overflow-y-auto p-5 space-y-6 bg-white' },
+                        filtered.map(p => React.createElement('div', { key: p.id, className: 'space-y-3' },
+                          React.createElement('div', { className: 'flex items-center gap-2 border-b border-emerald-50 pb-1' },
+                             React.createElement(ChevronRight, { size: 14, className: 'text-emerald-400' }),
+                             React.createElement('h4', { className: 'font-black text-emerald-900 text-sm' }, p.name)
+                          ),
+                          p.variants.map(v => {
+                            const q = selectedItems.find(i => i.pid === p.id && i.vn === v.name)?.qty || 0;
+                            return React.createElement('div', { key: v.name, className: 'flex items-center justify-between p-3 bg-slate-50 rounded-2xl hover:bg-emerald-50 transition' },
+                              React.createElement('div', { className: 'flex flex-col' },
+                                React.createElement('span', { className: 'text-[10px] font-bold text-gray-700' }, v.name),
+                                React.createElement('span', { className: 'text-sm font-black text-emerald-600' }, v.price === 0 ? "未有貨" : `$${v.price}`)
+                              ),
+                              React.createElement('div', { className: 'flex items-center gap-3' },
+                                React.createElement('button', { onClick: () => handleQty(p, v, -1), className: 'w-8 h-8 flex items-center justify-center rounded-full bg-white border border-emerald-100 text-emerald-600' }, React.createElement(Minus, { size: 16 })),
+                                React.createElement('span', { className: 'w-6 text-center font-black text-emerald-900' }, q),
+                                React.createElement('button', { onClick: () => handleQty(p, v, 1), className: 'w-8 h-8 flex items-center justify-center rounded-full bg-white border border-emerald-100 text-emerald-600' }, React.createElement(Plus, { size: 16 }))
+                              )
+                            )
+                          })
+                        ))
+                      )
+                    )
+                  )
+                ),
+                React.createElement('div', { className: 'space-y-6' },
+                  React.createElement('div', { className: 'bg-white p-6 rounded-3xl shadow-xl border-t-8 border-emerald-600 sticky top-6' },
+                    React.createElement('h2', { className: 'text-xl font-black mb-6 flex items-center gap-2 text-emerald-900' }, React.createElement(ShoppingCart, { size: 24, className: 'text-emerald-600' }), "購物籃"),
+                    React.createElement('div', { className: 'space-y-3 mb-6 max-h-[350px] overflow-y-auto scrollbar-hide' },
+                      selectedItems.length === 0 ? React.createElement('div', { className: 'text-center py-12 text-gray-300' }, "籃子是空的...") :
+                      selectedItems.map(i => React.createElement('div', { key: i.pid+i.vn, className: 'flex justify-between items-center bg-emerald-50/30 p-3 rounded-2xl' }, 
+                        React.createElement('div', null, 
+                          React.createElement('p', { className: 'font-bold text-xs text-gray-800' }, i.pn),
+                          React.createElement('p', { className: 'text-[10px] text-emerald-600 font-bold' }, `${i.vn} x ${i.qty}`)
+                        ),
+                        React.createElement('span', { className: 'font-black text-emerald-700' }, `$${i.pr*i.qty}`)
+                      ))
+                    ),
+                    React.createElement('div', { className: 'border-t-2 border-emerald-50 border-dashed pt-6' },
+                      React.createElement('div', { className: 'flex justify-between text-2xl font-black mb-6 text-emerald-900' }, React.createElement('span', null, "總計"), React.createElement('span', { className: 'text-emerald-600' }, `$${selectedItems.reduce((acc, i) => acc + (i.pr*i.qty), 0)}`)),
+                      React.createElement('button', { onClick: submit, className: 'w-full py-5 bg-emerald-600 text-white rounded-2xl font-black shadow-xl flex items-center justify-center gap-3 text-lg hover:bg-emerald-700 transition' }, 
+                        React.createElement(CheckCircle, { size: 24 }), "送出我的訂單"
+                      )
+                    )
+                  )
+                )
+              ),
+
+              React.createElement('div', { className: 'bg-white rounded-3xl shadow-lg border border-emerald-50 overflow-hidden' },
+                React.createElement('div', { className: 'p-6 bg-emerald-900 text-white font-black flex justify-between items-center' }, 
+                  React.createElement('div', { className: 'flex items-center gap-3' }, React.createElement(FileSpreadsheet, { size: 24 }), React.createElement('span', { className: 'text-xl' }, "全體訂單彙整表")),
+                  React.createElement('span', { className: 'text-emerald-100 bg-emerald-800 px-4 py-1 rounded-full text-xs' }, `目前累計 ${orders.length} 人訂購`)
+                ),
+                React.createElement('div', { className: 'overflow-x-auto' },
+                  React.createElement('table', { className: 'w-full text-sm' },
+                    React.createElement('thead', { className: 'bg-slate-50 text-emerald-800 font-black text-xs' },
+                      React.createElement('tr', null,
+                        React.createElement('th', { className: 'p-4 border-b' }, "訂購人"),
+                        React.createElement('th', { className: 'p-4 text-left border-b' }, "品項規格"),
+                        React.createElement('th', { className: 'p-4 text-center border-b' }, "數量"),
+                        React.createElement('th', { className: 'p-4 text-center border-b' }, "單價"),
+                        React.createElement('th', { className: 'p-4 text-center border-b' }, "小計"),
+                        React.createElement('th', { className: 'p-4 border-b no-print' }, "操作")
+                      )
+                    ),
+                    React.createElement('tbody', null,
+                      orders.length === 0 ? React.createElement('tr', null, React.createElement('td', { colSpan: 6, className: 'p-24 text-center text-gray-300 italic' }, "尚無團員送出訂單")) :
+                      orders.map(o => React.createElement(React.Fragment, { key: o.id },
+                        o.items.map((item, idx) => React.createElement('tr', { key: idx, className: 'border-b border-emerald-50/30 hover:bg-emerald-50/5 transition' },
+                          idx === 0 && React.createElement('td', { rowSpan: o.items.length + 1, className: 'p-4 text-center font-black bg-white border-r text-emerald-900 italic' }, o.name),
+                          React.createElement('td', { className: 'p-4 font-bold text-gray-700' }, item.pn, " ", React.createElement('span', { className: 'text-emerald-400 font-medium' }, `(${item.vn})`)),
+                          React.createElement('td', { className: 'p-4 text-center font-bold' }, item.qty),
+                          React.createElement('td', { className: 'p-4 text-center text-gray-400' }, "$", item.pr),
+                          React.createElement('td', { className: 'p-4 text-center font-black text-emerald-600' }, "$", item.pr*item.qty),
+                          React.createElement('td', { className: 'p-4 no-print' })
+                        )),
+                        React.createElement('tr', { className: 'bg-amber-50/50 font-black border-b-2 border-white' },
+                          React.createElement('td', { colSpan: 3, className: 'p-3 text-right text-[10px] text-amber-800 italic' }, "個人結帳總計："),
+                          React.createElement('td', { colSpan: 1, className: 'p-3 text-center text-amber-700 text-base' }, "$", o.items.reduce((acc, i) => acc + (i.pr*i.qty), 0)),
+                          React.createElement('td', { className: 'p-3 text-center no-print' },
+                            React.createElement('button', { onClick: () => { if(confirm(`確定刪除 ${o.name} 的整筆訂單？`)) { const n = orders.filter(x => x.id !== o.id); setOrders(n); if(isCloudActive) sync(n); } }, className: 'text-red-300 hover:text-red-500 transition' }, React.createElement(Trash2, { size: 18 }))
+                          )
+                        )
+                      ))
+                    ),
+                    orders.length > 0 && React.createElement('tfoot', { className: 'bg-emerald-50 text-emerald-900 font-black' },
+                      React.createElement('tr', null,
+                        React.createElement('td', { colSpan: 4, className: 'p-8 text-right text-xl' }, "全體團購結帳總額："),
+                        React.createElement('td', { colSpan: 2, className: 'p-8 text-center text-emerald-600 text-3xl font-mono' }, "$", orders.reduce((acc, o) => acc + o.items.reduce((s, i) => s + (i.pr*i.qty), 0), 0))
+                      )
+                    )
+                  )
+                )
+              ),
+              React.createElement('footer', { className: 'text-center py-16 text-gray-300 text-[10px] no-print' }, "廣筌中藥團購助手 · 全面修正版 · 分類與品項正確對齊")
+            )
+          );
+        };
+
+        const root = createRoot(document.getElementById('root'));
+        root.render(React.createElement(App));
+    </script>
+</body>
+</html>
